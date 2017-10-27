@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+from collections import Counter
 from urllib.request import urlopen, Request
 import argparse
 import base64
@@ -49,7 +50,13 @@ class TwitterAvatarFetcher:
 			return json.loads(resp.read().decode())
 
 	def downloadAvatars (self, users):
-		users = list(filter(validateScreenName, users))
+		users = Counter(filter(validateScreenName, users))
+		for user, count in users.items():
+			if count > 1:
+				print('Duplicated screen name: "{}" ({} times)'.format(user, count))
+
+		users = list(users.keys())
+		print('Downloading avatars for {} users'.format(len(users)))
 		for i in range(0, len(users), 50):
 			for user in self.getUsers(users[i:i+50]):
 				screenName = user['screen_name']
