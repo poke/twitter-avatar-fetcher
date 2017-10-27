@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import urllib.parse
+import urllib.error
 
 reScreenName = re.compile('^[a-z0-9_]{1,15}$', re.I)
 def validateScreenName (screenName):
@@ -62,13 +63,20 @@ class TwitterAvatarFetcher:
 			for user in self.getUsers(batch):
 				screenName = user['screen_name']
 				batch.remove(screenName.lower())
-				url = user['profile_image_url'].replace('_normal', '')
-				path = os.path.join(self.targetFolder, screenName + os.path.splitext(url)[1])
+				imageUrl = user['profile_image_url']
+				path = os.path.join(self.targetFolder, screenName + os.path.splitext(imageUrl)[1])
+
 				try:
-					with urlopen(url) as res, open(path, 'wb+') as f:
-						shutil.copyfileobj(res, f)
+					for url in imageUrl.replace('_normal', ''), imageUrl.replace('_normal', '_400x400'), imageUrl:
+						try:
+							with urlopen(url) as res, open(path, 'wb+') as f:
+								shutil.copyfileobj(res, f)
+							break
+						except urllib.error.HTTPError as e:
+							if e.code != 404 or url == imageUrl:
+								raise
 				except Exception as e:
-					print('Download failed for "{}"\n  '.format(screenName, e))
+					print('Download failed for "{}"\n  {}'.format(screenName, e))
 
 			if batch:
 				print('Skipped by the Twitter API:', batch)
