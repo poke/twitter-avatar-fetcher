@@ -58,8 +58,10 @@ class TwitterAvatarFetcher:
 		users = list(users.keys())
 		print('Downloading avatars for {} users'.format(len(users)))
 		for i in range(0, len(users), 50):
-			for user in self.getUsers(users[i:i+50]):
+			batch = set((u.lower() for u in users[i:i+50]))
+			for user in self.getUsers(batch):
 				screenName = user['screen_name']
+				batch.remove(screenName.lower())
 				url = user['profile_image_url'].replace('_normal', '')
 				path = os.path.join(self.targetFolder, screenName + os.path.splitext(url)[1])
 				try:
@@ -67,6 +69,9 @@ class TwitterAvatarFetcher:
 						shutil.copyfileobj(res, f)
 				except Exception as e:
 					print('Download failed for "{}"\n  '.format(screenName, e))
+
+			if batch:
+				print('Skipped by the Twitter API:', batch)
 
 def main ():
 	parser = argparse.ArgumentParser(description='Fetch user avatars from Twitter.')
